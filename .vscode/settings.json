@@ -1,7 +1,8 @@
 {
 	"python.formatting.provider": "black",
 	"python.formatting.blackArgs": [
-		"--line-length=80",
+		"--line-length=81",
 		"--skip-numeric-string-normalization=true"
-	]
+	],
+	"python.pythonPath": "/usr/bin/python3"
 }
