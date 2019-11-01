@@ -10,15 +10,13 @@ class ProcessManagerWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Process Manager")
         self.connect("destroy", Gtk.main_quit)
+        # self.set_size_request(300, 300)
 
         self.executing = False
         self.process_manager = ProcessManager()
 
         self.init_components()
         self.init_events()
-
-    # def test(self, toggleButton):
-    #     print(toggleButton.get_active())
 
     def init_components(self):
         inactive_processes = self.process_manager.inactive_processes
@@ -30,61 +28,91 @@ class ProcessManagerWindow(Gtk.Window):
             column_spacing=5,
         )
 
-        # Process Button
-        self.add_process_button = Gtk.ToggleButton(label="Add Process")
+        # Process Button -------------------------------------------------------
+        self.add_process_button = Gtk.Button(label="Add Process")
 
-        # Inactive Processes List
+        # Inactive Processes List ----------------------------------------------
         self.inactive_processes_list_box = Gtk.ListBox()
         self.inactive_processes_list_box.set_selection_mode(Gtk.SelectionMode.NONE)
+        inactive_processes_scrolled_window = Gtk.ScrolledWindow()
+        inactive_processes_scrolled_window.add(self.inactive_processes_list_box)
 
-        # Inactive Processes List
+        # Inactive Processes List ----------------------------------------------
         self.prepared_processes_list_box = Gtk.ListBox()
+        prepared_processes_scrolled_window = Gtk.ScrolledWindow()
+        prepared_processes_scrolled_window.add(self.prepared_processes_list_box)
 
-        # Inactive Processes List
-        self.executed_process_label = Gtk.Label(label="Executed:\n")
-        self.executed_process_label.set_halign(Gtk.Align.START)
+        # Inactive Processes List ----------------------------------------------
+        self.executed_process_label = Gtk.Label()
+        self.executed_process_label.set_halign(Gtk.Align.CENTER)
 
-        # Inactive Processes List
+        # Inactive Processes List ----------------------------------------------
         self.suspended_processes_list_box = Gtk.ListBox()
+        suspended_processes_scrolled_window = Gtk.ScrolledWindow()
+        suspended_processes_scrolled_window.add(self.suspended_processes_list_box)
 
         self.update_components()
 
-        # Add Components
-        grid.attach(
-            child=self.inactive_processes_list_box, left=0, top=0, width=1, height=19
-        )
-        grid.attach(child=self.add_process_button, left=0, top=19, width=1, height=1)
-        grid.attach(
-            child=self.prepared_processes_list_box, left=1, top=0, width=5, height=19
-        )
-        grid.attach(child=self.executed_process_label, left=6, top=0, width=5, height=1)
-        grid.attach(
-            child=self.suspended_processes_list_box, left=6, top=1, width=5, height=19
-        )
+        # Add Components -------------------------------------------------------
+        grid.attach(Gtk.Label(label="Inactive Processes"), 0, 0, 1, 1)
+        grid.attach(inactive_processes_scrolled_window, 0, 1, 1, 18)
+        grid.attach(self.add_process_button, 0, 19, 1, 1)
+        grid.attach(Gtk.Label(label="Prepared Processes"), 1, 0, 5, 1)
+        grid.attach(prepared_processes_scrolled_window, 1, 1, 5, 19)
+        grid.attach(Gtk.Label(label="Executed Process"), 6, 0, 5, 1)
+        grid.attach(self.executed_process_label, 6, 1, 5, 1)
+        grid.attach(Gtk.Label(label="Suspended Processes"), 6, 2, 5, 1)
+        grid.attach(suspended_processes_scrolled_window, 6, 3, 5, 17)
 
         self.add(grid)
-        # self.add(self.inactive_processes_list_box)
 
     def init_events(self):
         self.add_process_button.connect("clicked", self.add_process_action)
 
     def update_components(self):
+        # Load processes -------------------------------------------------------
         inactive_processes = self.process_manager.inactive_processes
+        prepared_processes = self.process_manager.prepared_processes
+        executed_process = self.process_manager.executed_process
+        suspended_processes = self.process_manager.suspended_processes
 
-        listChildren = self.inactive_processes_list_box.get_children()
-        for i in listChildren:
-            i.destroy()
-
+        # Clear lists ----------------------------------------------------------
+        self.clear_list_box(self.inactive_processes_list_box)
+        self.clear_list_box(self.prepared_processes_list_box)
+        self.clear_list_box(self.suspended_processes_list_box)
+        # Add processes to lists -----------------------------------------------
         for i in inactive_processes:
             row = Gtk.ListBoxRow()
-            box = Gtk.Box()
-
             process_button = Gtk.ToggleButton(label=i.name)
-            process_button.connect("toggled", self.prepare_process_action)
-            box.pack_start(process_button, True, True, 0)
-
-            row.add(box)
+            if i.is_active:
+                process_button.set_active(True)
+            process_button.connect("clicked", self.prepare_process_action)
+            row.add(process_button)
             self.inactive_processes_list_box.add(row)
+
+        for i in prepared_processes:
+            row = Gtk.ListBoxRow()
+            process_button = Gtk.ToggleButton(label=i.name)
+            row.add(process_button)
+            self.prepared_processes_list_box.add(row)
+
+        if executed_process:
+            self.executed_process_label.set_label(str(executed_process))
+
+        for i in suspended_processes:
+            row = Gtk.ListBoxRow()
+            process_button = Gtk.ToggleButton(label=i.name)
+            row.add(process_button)
+            self.suspended_processes_list_box.add(row)
+
+        # Update lists components ----------------------------------------------
+        self.inactive_processes_list_box.show_all()
+        self.prepared_processes_list_box.show_all()
+        self.suspended_processes_list_box.show_all()
+
+    def clear_list_box(self, list_box):
+        for i in list_box.get_children():
+            i.destroy()
 
     def add_process_action(self, button):
         add_process_message_dialog = Gtk.MessageDialog(
@@ -115,29 +143,24 @@ class ProcessManagerWindow(Gtk.Window):
     def prepare_process_action(self, button):
         self.executing = True
 
-        self.prepare_process(button.get_label())
-        print(button.get_label(), button.get_active())
-
-    def prepare_process(self, process_name):
-        pass
+        if button.get_active():
+            process = self.process_manager.prepare_process(button.get_label())
+            print(process, button.get_active())
+            self.update_components()
+        else:
+            button.set_active(True)
 
     def execute_process_action(self, button):
-        pass
-
-    def execute_process(self, process_pid):
-        pass
+        process = process_manager.search_process(
+            button.get_name, self.process_manager.inactive_processes
+        )
+        self.process_manager.execute_process(process.pid)
 
     def deactivate_process_action(self, button):
-        pass
-
-    def deactivate_process(self, proces_pid):
-        pass
+        self.process_manager.deactivate_process()
 
     def suspend_process_action(self, button):
-        pass
-
-    def suspend_process(self, process_pid):
-        pass
+        self.process_manager.suspend_process()
 
 
 if __name__ == "__main__":

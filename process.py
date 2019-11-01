@@ -12,6 +12,7 @@ class Process:
         self.memory = random.randint(100, 300)
         self.quantum = random.randint(10, 50)
         self.interaction = random.choice([True, False])
+        self.is_active = True
 
     def deactivate(self):
         self.pid = None
@@ -19,6 +20,7 @@ class Process:
         self.memory = None
         self.quantum = None
         self.interaction = None
+        self.is_active = False
 
     def __str__(self):
         string = f"Process[name={self.name}"
