@@ -1,6 +1,6 @@
 import gi
 
-gi.require_version("Gtk", "3.0")
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from process_manager import ProcessManager
@@ -8,8 +8,8 @@ from process_manager import ProcessManager
 
 class ProcessManagerWindow(Gtk.Window):
     def __init__(self):
-        Gtk.Window.__init__(self, title="Process Manager")
-        self.connect("destroy", Gtk.main_quit)
+        Gtk.Window.__init__(self, title='Process Manager')
+        self.connect('destroy', Gtk.main_quit)
         # self.set_size_request(300, 300)
 
         self.executing = False
@@ -19,8 +19,6 @@ class ProcessManagerWindow(Gtk.Window):
         self.init_events()
 
     def init_components(self):
-        inactive_processes = self.process_manager.inactive_processes
-
         grid = Gtk.Grid(
             row_homogeneous=True,
             column_homogeneous=True,
@@ -29,7 +27,7 @@ class ProcessManagerWindow(Gtk.Window):
         )
 
         # Process Button -------------------------------------------------------
-        self.add_process_button = Gtk.Button(label="Add Process")
+        self.add_process_button = Gtk.Button(label='Add Process')
 
         # Inactive Processes List ----------------------------------------------
         self.inactive_processes_list_box = Gtk.ListBox()
@@ -43,7 +41,7 @@ class ProcessManagerWindow(Gtk.Window):
         prepared_processes_scrolled_window.add(self.prepared_processes_list_box)
 
         # Inactive Processes List ----------------------------------------------
-        self.executed_process_label = Gtk.Label()
+        self.executed_process_label = Gtk.Label(label='None')
         self.executed_process_label.set_halign(Gtk.Align.CENTER)
 
         # Inactive Processes List ----------------------------------------------
@@ -54,20 +52,20 @@ class ProcessManagerWindow(Gtk.Window):
         self.update_components()
 
         # Add Components -------------------------------------------------------
-        grid.attach(Gtk.Label(label="Inactive Processes"), 0, 0, 1, 1)
+        grid.attach(Gtk.Label(label='Inactive Processes'), 0, 0, 1, 1)
         grid.attach(inactive_processes_scrolled_window, 0, 1, 1, 18)
         grid.attach(self.add_process_button, 0, 19, 1, 1)
-        grid.attach(Gtk.Label(label="Prepared Processes"), 1, 0, 5, 1)
-        grid.attach(prepared_processes_scrolled_window, 1, 1, 5, 19)
-        grid.attach(Gtk.Label(label="Executed Process"), 6, 0, 5, 1)
-        grid.attach(self.executed_process_label, 6, 1, 5, 1)
-        grid.attach(Gtk.Label(label="Suspended Processes"), 6, 2, 5, 1)
-        grid.attach(suspended_processes_scrolled_window, 6, 3, 5, 17)
+        grid.attach(Gtk.Label(label='Prepared Processes'), 1, 0, 4, 1)
+        grid.attach(prepared_processes_scrolled_window, 1, 1, 4, 19)
+        grid.attach(Gtk.Label(label='Executed Process'), 5, 0, 4, 1)
+        grid.attach(self.executed_process_label, 5, 1, 4, 1)
+        grid.attach(Gtk.Label(label='Suspended Processes'), 5, 2, 4, 1)
+        grid.attach(suspended_processes_scrolled_window, 5, 3, 4, 17)
 
         self.add(grid)
 
     def init_events(self):
-        self.add_process_button.connect("clicked", self.add_process_action)
+        self.add_process_button.connect('clicked', self.add_process_action)
 
     def update_components(self):
         # Load processes -------------------------------------------------------
@@ -86,7 +84,7 @@ class ProcessManagerWindow(Gtk.Window):
             process_button = Gtk.ToggleButton(label=i.name)
             if i.is_active:
                 process_button.set_active(True)
-            process_button.connect("clicked", self.prepare_process_action)
+            process_button.connect('clicked', self.prepare_process_action)
             row.add(process_button)
             self.inactive_processes_list_box.add(row)
 
@@ -117,8 +115,8 @@ class ProcessManagerWindow(Gtk.Window):
     def add_process_action(self, button):
         add_process_message_dialog = Gtk.MessageDialog(
             parent=self,
-            title="Add New Process",
-            text="Process Name:",
+            title='Add New Process',
+            text='Process Name:',
             buttons=Gtk.ButtonsType.OK_CANCEL,
         )
 
@@ -151,7 +149,7 @@ class ProcessManagerWindow(Gtk.Window):
             button.set_active(True)
 
     def execute_process_action(self, button):
-        process = process_manager.search_process(
+        process = self.process_manager.search_process(
             button.get_name, self.process_manager.inactive_processes
         )
         self.process_manager.execute_process(process.pid)
@@ -163,6 +161,6 @@ class ProcessManagerWindow(Gtk.Window):
         self.process_manager.suspend_process()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     ProcessManagerWindow().show_all()
     Gtk.main()
