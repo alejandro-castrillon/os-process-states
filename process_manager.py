@@ -20,9 +20,12 @@ class ProcessManager:
         return []
 
     def search_process(self, data, _list) -> Process:
-        process = Process(data)
+        # process = Process(data)
         for i in _list:
-            if i == process:
+            if i.pid:
+                if i.pid == data:
+                    return i
+            elif i.name == data:
                 return i
 
     def add_process(self, process_name):
@@ -32,6 +35,7 @@ class ProcessManager:
 
     def prepare_process(self, process_name):
         process = self.search_process(process_name, self.inactive_processes)
+        print('inactives:', self.inactive_processes)
         if process:
             process.activate(self.current_pid)
             self.current_pid += 1

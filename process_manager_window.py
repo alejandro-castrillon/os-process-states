@@ -4,6 +4,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from process_manager import ProcessManager
+from process import Process
 
 
 class ProcessManagerWindow(Gtk.Window):
@@ -78,16 +79,17 @@ class ProcessManagerWindow(Gtk.Window):
         self.clear_list_box(self.inactive_processes_list_box)
         self.clear_list_box(self.prepared_processes_list_box)
         self.clear_list_box(self.suspended_processes_list_box)
-        
+
         # Add processes to lists -----------------------------------------------
         for i in inactive_processes:
             row = Gtk.ListBoxRow()
             process_button = Gtk.ToggleButton(label=i.name)
-            if i.is_active:
+            if i.pid:
                 process_button.set_active(True)
             process_button.connect('clicked', self.prepare_process_action)
             row.add(process_button)
             self.inactive_processes_list_box.add(row)
+            process_button = None
 
         for i in prepared_processes:
             row = Gtk.ListBoxRow()
@@ -150,17 +152,17 @@ class ProcessManagerWindow(Gtk.Window):
         else:
             button.set_active(True)
 
-    def execute_process_action(self, button) -> None:
-        process = self.process_manager.search_process(
-            button.get_name, self.process_manager.inactive_processes
-        )
+    def execute_process_action(self, process) -> None:
         self.process_manager.execute_process(process.pid)
+        self.update_components()
 
     def deactivate_process_action(self, button) -> None:
         self.process_manager.deactivate_process()
+        self.update_components()
 
     def suspend_process_action(self, button) -> None:
         self.process_manager.suspend_process()
+        self.update_components()
 
     def compete_by_higher_priority(self):
         prepared_processes = self.process_manager.inactive_processes
@@ -179,10 +181,10 @@ class ProcessManagerWindow(Gtk.Window):
         else:
             process_to_execute = self.compete_by_quantum(prepared_processes)
 
+        self.execute_process_action(process_to_execute)
+
     def compete_by_quantum(self, processes) -> Process:
-        lower_quantum_processes = self.get_lower_quantum_processes(
-            processes
-        )
+        lower_quantum_processes = self.get_lower_quantum_processes(processes)
         if lower_quantum_processes:
             if len(lower_quantum_processes) > 1:
                 return self.get_lower_pid_process(lower_quantum_processes)
