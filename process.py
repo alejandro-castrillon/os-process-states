@@ -8,11 +8,10 @@ class Process:
 
     def activate(self, pid):
         self.pid = pid
-        self.priority_level = random.choice(["MA", "A", "M", "B"])
+        self.priority_level = random.choice(["VeryHigh", "High", "Medium", "Low"])
         self.memory = random.randint(100, 300)
         self.quantum = random.randint(10, 50)
         self.interaction = random.choice([True, False])
-        self.is_active = True
 
     def deactivate(self):
         self.pid = None
@@ -20,7 +19,6 @@ class Process:
         self.memory = None
         self.quantum = None
         self.interaction = None
-        self.is_active = False
 
     def __str__(self):
         string = f"Process[name={self.name}"
@@ -36,5 +34,5 @@ class Process:
 
     def __eq__(self, process):
         return isinstance(process, Process) and (
-            process.name == self.name or process.pid == self.pid
+            self.pid == process.pid or self.name == process.name
         )
