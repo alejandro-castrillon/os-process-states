@@ -10,7 +10,7 @@ class ProcessManager:
         self.suspended_processes = []
 
         self.quantum_rat = 0
-        self.current_pid = '0001'
+        self.current_pid = '0000'
 
     def load_processes(self) -> list:
         try:
@@ -42,8 +42,7 @@ class ProcessManager:
         for i in self.prepared_processes:
             if i.pid == process_pid:
                 process = i
-        process = self.search_process(process_pid)
-        self.prepared_processes.remove(process_pid)
+        self.prepared_processes.remove(process)
         self.execute_process = process
 
     def deactivate_process(self):

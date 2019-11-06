@@ -39,6 +39,9 @@ class ProcessManagerWindow(Gtk.Window):
 
         # Inactive Processes List ----------------------------------------------
         self.prepared_processes_list_box = Gtk.ListBox()
+        self.prepared_processes_list_box.set_selection_mode(
+            Gtk.SelectionMode.NONE
+        )
         prepared_processes_scrolled_window = Gtk.ScrolledWindow()
         prepared_processes_scrolled_window.add(self.prepared_processes_list_box)
 
@@ -48,6 +51,9 @@ class ProcessManagerWindow(Gtk.Window):
 
         # Inactive Processes List ----------------------------------------------
         self.suspended_processes_list_box = Gtk.ListBox()
+        self.suspended_processes_list_box.set_selection_mode(
+            Gtk.SelectionMode.NONE
+        )
         suspended_processes_scrolled_window = Gtk.ScrolledWindow()
         suspended_processes_scrolled_window.add(
             self.suspended_processes_list_box
@@ -93,7 +99,7 @@ class ProcessManagerWindow(Gtk.Window):
 
         for i in prepared_processes:
             row = Gtk.ListBoxRow()
-            process_button = Gtk.ToggleButton(label=i.name)
+            process_button = Gtk.Label(label=i.name)
             row.add(process_button)
             self.prepared_processes_list_box.add(row)
 
@@ -142,13 +148,14 @@ class ProcessManagerWindow(Gtk.Window):
         self.update_components()
 
     def prepare_process_action(self, button) -> None:
-        self.executing = True
-        # self.compete_by_higher_priority()
-
         if button.get_active():
             process = self.process_manager.prepare_process(button.get_label())
             print(process, button.get_active())
             self.update_components()
+
+            if not self.executing:
+                self.executing = True
+                self.compete_by_higher_priority()
         else:
             button.set_active(True)
 
@@ -156,16 +163,16 @@ class ProcessManagerWindow(Gtk.Window):
         self.process_manager.execute_process(process.pid)
         self.update_components()
 
-    def deactivate_process_action(self, button) -> None:
+    def deactivate_process_action(self) -> None:
         self.process_manager.deactivate_process()
         self.update_components()
 
-    def suspend_process_action(self, button) -> None:
+    def suspend_process_action(self) -> None:
         self.process_manager.suspend_process()
         self.update_components()
 
     def compete_by_higher_priority(self):
-        prepared_processes = self.process_manager.inactive_processes
+        prepared_processes = self.process_manager.prepared_processes
 
         higher_priority_processes = self.get_higher_priority_processes(
             prepared_processes
