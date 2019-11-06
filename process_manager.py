@@ -4,12 +4,12 @@ import file_manager
 
 class ProcessManager:
     def __init__(self):
-        self.quantum_rat = 0
         self.inactive_processes = self.load_processes()
         self.prepared_processes = []
         self.executed_process = None
         self.suspended_processes = []
 
+        self.quantum_rat = 0
         self.current_pid = 1
 
     def load_processes(self) -> list:
@@ -17,16 +17,10 @@ class ProcessManager:
             return file_manager.read_binary_file("processes.pcs")
         except FileNotFoundError as err:
             print(err)
-        return []
-
-    def search_process(self, data, _list) -> Process:
-        # process = Process(data)
-        for i in _list:
-            if i.pid:
-                if i.pid == data:
-                    return i
-            elif i.name == data:
-                return i
+            processes = []
+            for i in ['bash', 'nano', 'git', 'python']:
+                processes += [Process(i)]
+            return processes
 
     def add_process(self, process_name):
         process = Process(process_name)
@@ -34,15 +28,20 @@ class ProcessManager:
         self.inactive_processes.append(process)
 
     def prepare_process(self, process_name):
-        process = self.search_process(process_name, self.inactive_processes)
-        print('inactives:', self.inactive_processes)
+        process = None
+        for i in self.inactive_processes:
+            if i.name == process_name:
+                process = i
         if process:
-            process.activate(self.current_pid)
-            self.current_pid += 1
+            process.activate(self.generate_pid())
             self.prepared_processes.append(process)
             return process
 
     def execute_process(self, process_pid):
+        process = None
+        for i in self.prepared_processes:
+            if i.pid == process_pid:
+                process = i
         process = self.search_process(process_pid)
         self.prepared_processes.remove(process_pid)
         self.execute_process = process
@@ -54,3 +53,9 @@ class ProcessManager:
     def suspend_process(self):
         self.suspended_processes.append(self.executed_process)
         self.executed_process = None
+
+    def generate_pid(self):
+        self.current_pid = str(int(current_pid) + 1)
+        while len(self.current_pid) < 4:
+            self.current_pid = '0' + self.current_pid
+        return self.current_pid
