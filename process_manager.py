@@ -10,7 +10,7 @@ class ProcessManager:
         self.suspended_processes = []
 
         self.quantum_rat = 0
-        self.current_pid = 1
+        self.current_pid = '0001'
 
     def load_processes(self) -> list:
         try:
@@ -55,7 +55,7 @@ class ProcessManager:
         self.executed_process = None
 
     def generate_pid(self):
-        self.current_pid = str(int(current_pid) + 1)
+        self.current_pid = str(int(self.current_pid) + 1)
         while len(self.current_pid) < 4:
             self.current_pid = '0' + self.current_pid
         return self.current_pid
