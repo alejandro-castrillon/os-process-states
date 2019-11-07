@@ -1,0 +1,16 @@
+bash
+nano
+git
+python
+touch
+mkdir
+more
+node
+clear
+pacman
+echo
+reboot
+java
+gcc
+cat
+whoami

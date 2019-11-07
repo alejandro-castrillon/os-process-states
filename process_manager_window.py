@@ -1,22 +1,27 @@
 import gi
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from process_manager import ProcessManager
 from process import Process
 
 
 class ProcessManagerWindow(Gtk.Window):
+    # __________________________________________________________________________
     def __init__(self) -> None:
         Gtk.Window.__init__(self, title='Process Manager')
         self.connect('destroy', Gtk.main_quit)
 
-        self.executing = False
         self.process_manager = ProcessManager()
 
         self.init_components()
 
+        self.timeout_id = GLib.timeout_add(
+            1000, self.compete_by_higher_priority, None
+        )
+
+    # __________________________________________________________________________
     def init_components(self) -> None:
         grid = Gtk.Grid(
             row_homogeneous=True,
@@ -74,6 +79,7 @@ class ProcessManagerWindow(Gtk.Window):
 
         self.add(grid)
 
+    # __________________________________________________________________________
     def update_components(self) -> None:
         # Load processes -------------------------------------------------------
         inactive_processes = self.process_manager.inactive_processes
@@ -95,12 +101,13 @@ class ProcessManagerWindow(Gtk.Window):
             process_button.connect('clicked', self.prepare_process_action)
             row.add(process_button)
             self.inactive_processes_list_box.add(row)
-            process_button = None
 
         for i in prepared_processes:
             row = Gtk.ListBoxRow()
-            process_button = Gtk.Label(label=i.name)
-            row.add(process_button)
+            progress_bar = Gtk.ProgressBar()
+            progress_bar.set_text(str(i))
+            progress_bar.set_show_text(True)
+            row.add(progress_bar)
             self.prepared_processes_list_box.add(row)
 
         if executed_process:
@@ -108,8 +115,10 @@ class ProcessManagerWindow(Gtk.Window):
 
         for i in suspended_processes:
             row = Gtk.ListBoxRow()
-            process_button = Gtk.ToggleButton(label=i.name)
-            row.add(process_button)
+            progress_bar = Gtk.ProgressBar()
+            progress_bar.set_text(str(i))
+            progress_bar.set_show_text(True)
+            row.add(progress_bar)
             self.suspended_processes_list_box.add(row)
 
         # Update lists components ----------------------------------------------
@@ -117,22 +126,25 @@ class ProcessManagerWindow(Gtk.Window):
         self.prepared_processes_list_box.show_all()
         self.suspended_processes_list_box.show_all()
 
+    # __________________________________________________________________________
     def clear_list_box(self, list_box) -> None:
         for i in list_box.get_children():
             i.destroy()
 
+    # __________________________________________________________________________
     def add_process_action(self, button) -> None:
         add_process_message_dialog = Gtk.MessageDialog(
-            parent=self,
+            parent=None,
             title='Add New Process',
             text='Process Name:',
+            secondary_text='Empty name will not be added',
             buttons=Gtk.ButtonsType.OK_CANCEL,
         )
 
         process_name_entry = Gtk.Entry()
         process_name_entry.set_size_request(250, 0)
         add_process_message_dialog.get_content_area().pack_end(
-            process_name_entry, False, False, 0
+            process_name_entry, True, False, 0
         )
 
         add_process_message_dialog.show_all()
@@ -143,53 +155,63 @@ class ProcessManagerWindow(Gtk.Window):
         if process_name and response == Gtk.ResponseType.OK:
             self.add_process(process_name)
 
+    # __________________________________________________________________________
     def add_process(self, process_name) -> None:
         self.process_manager.add_process(process_name)
         self.update_components()
 
+    # __________________________________________________________________________
     def prepare_process_action(self, button) -> None:
         if button.get_active():
             process = self.process_manager.prepare_process(button.get_label())
             print(process, button.get_active())
             self.update_components()
 
-            if not self.executing:
-                self.executing = True
-                self.compete_by_higher_priority()
+            # if not self.executing:
+            #     self.compete_by_higher_priority()
         else:
             button.set_active(True)
 
+    # __________________________________________________________________________
     def execute_process_action(self, process) -> None:
-        self.process_manager.execute_process(process.pid)
+        self.process_manager.execute_process(process)
         self.update_components()
 
+    # __________________________________________________________________________
     def deactivate_process_action(self) -> None:
         self.process_manager.deactivate_process()
         self.update_components()
 
+    # __________________________________________________________________________
     def suspend_process_action(self) -> None:
         self.process_manager.suspend_process()
         self.update_components()
 
-    def compete_by_higher_priority(self):
+    # __________________________________________________________________________
+    def compete_by_higher_priority(self, button):
         prepared_processes = self.process_manager.prepared_processes
 
-        higher_priority_processes = self.get_higher_priority_processes(
-            prepared_processes
-        )
+        print(prepared_processes)
 
-        if higher_priority_processes:
-            if len(higher_priority_processes) > 1:
-                process_to_execute = self.compete_by_quantum(
-                    higher_priority_processes
-                )
+        if prepared_processes:
+            higher_priority_processes = self.get_higher_priority_processes(
+                prepared_processes
+            )
+
+            if higher_priority_processes:
+                if len(higher_priority_processes) > 1:
+                    process_to_execute = self.compete_by_quantum(
+                        higher_priority_processes
+                    )
+                else:
+                    process_to_execute = higher_priority_processes[0]
             else:
-                process_to_execute = higher_priority_processes[0]
-        else:
-            process_to_execute = self.compete_by_quantum(prepared_processes)
+                process_to_execute = self.compete_by_quantum(prepared_processes)
 
-        self.execute_process_action(process_to_execute)
+            self.execute_process_action(process_to_execute)
+        return True
 
+    # __________________________________________________________________________
     def compete_by_quantum(self, processes) -> Process:
         lower_quantum_processes = self.get_lower_quantum_processes(processes)
         if lower_quantum_processes:
@@ -198,6 +220,7 @@ class ProcessManagerWindow(Gtk.Window):
             else:
                 return lower_quantum_processes[0]
 
+    # __________________________________________________________________________
     def get_higher_priority_processes(self, processes) -> list:
         higher_priority_processes = []
         for i in processes:
@@ -205,6 +228,7 @@ class ProcessManagerWindow(Gtk.Window):
                 higher_priority_processes.append(i)
         return higher_priority_processes
 
+    # __________________________________________________________________________
     def get_lower_quantum_processes(self, processes) -> list:
         lower_quantum_processes = []
         lower_quantum = None, 0
@@ -216,11 +240,12 @@ class ProcessManagerWindow(Gtk.Window):
                 lower_quantum_processes.append(i)
         return lower_quantum_processes
 
+    # __________________________________________________________________________
     def get_lower_pid_process(self, processes) -> Process:
         lower_pip_process = None, 0
         for i in processes:
-            if lower_pip_process[1] < i.pip:
-                lower_pip_process = i, i.pip
+            if lower_pip_process[1] < int(i.pid):
+                lower_pip_process = i, int(i.pid)
         return lower_pip_process[0]
 
 
