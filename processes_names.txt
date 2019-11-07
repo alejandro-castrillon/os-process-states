@@ -14,3 +14,6 @@ java
 gcc
 cat
 whoami
+grep
+pip
+apt
