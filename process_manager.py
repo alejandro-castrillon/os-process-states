@@ -14,20 +14,20 @@ class ProcessManager:
 
     def load_processes(self) -> list:
         try:
-            return file_manager.read_binary_file("processes.pcs")
+            return file_manager.read_binary_file('processes.pcs')
         except FileNotFoundError as err:
             print(err)
-            processes = []
-            for i in ['bash', 'nano', 'git', 'python']:
-                processes += [Process(i)]
-            return processes
+            self.inactive_processes = []
+            for i in file_manager.read_file('processes_names.txt'):
+                self.add_process(i)
+            return self.load_processes()
 
     def add_process(self, process_name):
         process = Process(process_name)
-        file_manager.append_binary_file("processes.pcs", process)
+        file_manager.append_binary_file('processes.pcs', process)
         self.inactive_processes.append(process)
 
-    def prepare_process(self, process_name):
+    def prepare_process(self, process_name) -> Process:
         process = None
         for i in self.inactive_processes:
             if i.name == process_name:
@@ -37,19 +37,16 @@ class ProcessManager:
             self.prepared_processes.append(process)
             return process
 
-    def execute_process(self, process_pid):
-        process = None
-        for i in self.prepared_processes:
-            if i.pid == process_pid:
-                process = i
+    def execute_process(self, process) -> None:
         self.prepared_processes.remove(process)
-        self.execute_process = process
+        self.executed_process = process
 
-    def deactivate_process(self):
+    def deactivate_process(self) -> Process:
         self.executed_process.deactivate()
-        self.execute_process = None
+        process, self.execute_process = self.execute_process = None
+        return process
 
-    def suspend_process(self):
+    def suspend_process(self) -> Process:
         self.suspended_processes.append(self.executed_process)
         self.executed_process = None
 
