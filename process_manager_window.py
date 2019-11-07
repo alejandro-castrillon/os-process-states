@@ -12,14 +12,12 @@ class ProcessManagerWindow(Gtk.Window):
     def __init__(self) -> None:
         Gtk.Window.__init__(self, title='Process Manager')
         self.connect('destroy', Gtk.main_quit)
+        self.set_border_width(5)
 
         self.process_manager = ProcessManager()
+        self.timeout_id = None
 
         self.init_components()
-
-        self.timeout_id = GLib.timeout_add(
-            1000, self.compete_by_higher_priority, None
-        )
 
     # __________________________________________________________________________
     def init_components(self) -> None:
@@ -30,11 +28,17 @@ class ProcessManagerWindow(Gtk.Window):
             column_spacing=5,
         )
 
-        # Process Button -------------------------------------------------------
-        self.add_process_button = Gtk.Button(label='Add Process')
-        self.add_process_button.connect('clicked', self.add_process_action)
+        # Simulate Switch ------------------------------------------------------
+        top_box = Gtk.Box(spacing=2)
+
+        self.simulating_label = Gtk.Label(label='Start Simulating')
+        simulating_switch = Gtk.Switch()
+        simulating_switch.connect('notify::active', self.execute_simulation)
+        self.executing_spinner = Gtk.Spinner()
 
         # Inactive Processes List ----------------------------------------------
+        left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+
         self.inactive_processes_list_box = Gtk.ListBox()
         self.inactive_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -42,7 +46,12 @@ class ProcessManagerWindow(Gtk.Window):
         inactive_processes_scrolled_window = Gtk.ScrolledWindow()
         inactive_processes_scrolled_window.add(self.inactive_processes_list_box)
 
-        # Inactive Processes List ----------------------------------------------
+        add_process_button = Gtk.Button(label='Add Process')
+        add_process_button.connect('clicked', self.add_process_action)
+
+        # Prepared Processes List ----------------------------------------------
+        center_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+
         self.prepared_processes_list_box = Gtk.ListBox()
         self.prepared_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -50,11 +59,16 @@ class ProcessManagerWindow(Gtk.Window):
         prepared_processes_scrolled_window = Gtk.ScrolledWindow()
         prepared_processes_scrolled_window.add(self.prepared_processes_list_box)
 
-        # Inactive Processes List ----------------------------------------------
-        self.executed_process_label = Gtk.Label(label='None')
-        self.executed_process_label.set_halign(Gtk.Align.CENTER)
+        # Executed Process Progress Bar ----------------------------------------
+        self.executed_process_progress_bar = Gtk.ProgressBar()
+        self.executed_process_progress_bar.set_text('')
+        self.executed_process_progress_bar.set_show_text(True)
+        flow_box = Gtk.ListBox()
+        flow_box.add(self.executed_process_progress_bar)
 
-        # Inactive Processes List ----------------------------------------------
+        # Suspended Processes List ---------------------------------------------
+        right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+
         self.suspended_processes_list_box = Gtk.ListBox()
         self.suspended_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -65,35 +79,37 @@ class ProcessManagerWindow(Gtk.Window):
         )
 
         # Add Components -------------------------------------------------------
-        grid.attach(Gtk.Label(label='Inactive Processes'), 0, 0, 1, 1)
-        grid.attach(inactive_processes_scrolled_window, 0, 1, 1, 18)
-        grid.attach(self.add_process_button, 0, 19, 1, 1)
-        grid.attach(Gtk.Label(label='Prepared Processes'), 1, 0, 4, 1)
-        grid.attach(prepared_processes_scrolled_window, 1, 1, 4, 19)
-        grid.attach(Gtk.Label(label='Executed Process'), 5, 0, 4, 1)
-        grid.attach(self.executed_process_label, 5, 1, 4, 1)
-        grid.attach(Gtk.Label(label='Suspended Processes'), 5, 2, 4, 1)
-        grid.attach(suspended_processes_scrolled_window, 5, 3, 4, 17)
+        top_box.add(self.simulating_label)
+        top_box.add(simulating_switch)
+        top_box.add(self.executing_spinner)
+
+        grid.attach(top_box, 0, 0, 3, 1)
+
+        grid.attach(Gtk.Label(label='Inactive Processes'), 0, 1, 1, 1)
+        grid.attach(inactive_processes_scrolled_window, 0, 2, 1, 17)
+        grid.attach(add_process_button, 0, 19, 1, 1)
+
+        grid.attach(Gtk.Label(label='Prepared Processes'), 1, 1, 3, 1)
+        grid.attach(prepared_processes_scrolled_window, 1, 2, 3, 18)
+
+        grid.attach(Gtk.Label(label='Executed Process'), 4, 1, 3, 1)
+        grid.attach(flow_box, 4, 2, 3, 1)
+
+        grid.attach(Gtk.Label(label='Suspended Processes'), 4, 3, 3, 1)
+        grid.attach(suspended_processes_scrolled_window, 4, 4, 3, 16)
 
         self.update_components()
-
         self.add(grid)
 
     # __________________________________________________________________________
     def update_components(self) -> None:
-        # Load processes -------------------------------------------------------
-        inactive_processes = self.process_manager.inactive_processes
-        prepared_processes = self.process_manager.prepared_processes
-        executed_process = self.process_manager.executed_process
-        suspended_processes = self.process_manager.suspended_processes
-
         # Clear lists ----------------------------------------------------------
         self.clear_list_box(self.inactive_processes_list_box)
         self.clear_list_box(self.prepared_processes_list_box)
         self.clear_list_box(self.suspended_processes_list_box)
 
-        # Add processes to lists -----------------------------------------------
-        for i in inactive_processes:
+        # Add Inactive Processes -----------------------------------------------
+        for i in self.process_manager.inactive_processes:
             row = Gtk.ListBoxRow()
             process_button = Gtk.ToggleButton(label=i.name)
             if i.pid:
@@ -102,7 +118,8 @@ class ProcessManagerWindow(Gtk.Window):
             row.add(process_button)
             self.inactive_processes_list_box.add(row)
 
-        for i in prepared_processes:
+        # Add Prepared Processes -----------------------------------------------
+        for i in self.process_manager.prepared_processes:
             row = Gtk.ListBoxRow()
             progress_bar = Gtk.ProgressBar()
             progress_bar.set_text(str(i))
@@ -110,10 +127,13 @@ class ProcessManagerWindow(Gtk.Window):
             row.add(progress_bar)
             self.prepared_processes_list_box.add(row)
 
+        # Add Executed Processes -----------------------------------------------
+        executed_process = self.process_manager.executed_process
         if executed_process:
-            self.executed_process_label.set_label(str(executed_process))
+            self.executed_process_progress_bar.set_text(str(executed_process))
 
-        for i in suspended_processes:
+        # Add Suspended Processes ----------------------------------------------
+        for i in self.process_manager.suspended_processes:
             row = Gtk.ListBoxRow()
             progress_bar = Gtk.ProgressBar()
             progress_bar.set_text(str(i))
@@ -132,6 +152,21 @@ class ProcessManagerWindow(Gtk.Window):
             i.destroy()
 
     # __________________________________________________________________________
+    def execute_simulation(self, switch, gparam):
+        if switch.get_active():
+            self.timeout_id = GLib.timeout_add(
+                1000, self.compete_by_higher_priority, None
+            )
+            self.executing_spinner.start()
+            self.simulating_label.set_label("Stop Simulating")
+        else:
+            if self.timeout_id:
+                GLib.source_remove(self.timeout_id)
+                self.timeout_id = None
+            self.executing_spinner.stop()
+            self.simulating_label.set_label("Start Simulating")
+
+    # __________________________________________________________________________
     def add_process_action(self, button) -> None:
         add_process_message_dialog = Gtk.MessageDialog(
             parent=None,
@@ -142,9 +177,8 @@ class ProcessManagerWindow(Gtk.Window):
         )
 
         process_name_entry = Gtk.Entry()
-        process_name_entry.set_size_request(250, 0)
         add_process_message_dialog.get_content_area().pack_end(
-            process_name_entry, True, False, 0
+            process_name_entry, True, True, 0
         )
 
         add_process_message_dialog.show_all()
@@ -164,40 +198,48 @@ class ProcessManagerWindow(Gtk.Window):
     def prepare_process_action(self, button) -> None:
         if button.get_active():
             process = self.process_manager.prepare_process(button.get_label())
-            print(process, button.get_active())
-            self.update_components()
-
-            # if not self.executing:
-            #     self.compete_by_higher_priority()
+            if process:
+                print('+ prepare:', process)
+                self.update_components()
+            else:
+                show_error_message_error = Gtk.MessageDialog(
+                    parent=None,
+                    title='Can not execute more processes',
+                    text='Error:',
+                    secondary_text='Can not execute more processes\nProcesses Limit: 999',
+                    buttons=Gtk.ButtonsType.OK_CANCEL,
+                )
+                response = show_error_message_error.run()
+                show_error_message_error.destroy()
         else:
             button.set_active(True)
 
     # __________________________________________________________________________
     def execute_process_action(self, process) -> None:
+        print('* execute:', process)
         self.process_manager.execute_process(process)
         self.update_components()
 
     # __________________________________________________________________________
     def deactivate_process_action(self) -> None:
-        self.process_manager.deactivate_process()
+        process = self.process_manager.deactivate_process()
+        print('- deactivate:', process)
         self.update_components()
 
     # __________________________________________________________________________
     def suspend_process_action(self) -> None:
-        self.process_manager.suspend_process()
+        process = self.process_manager.suspend_process()
+        print('/ suspend:', process)
         self.update_components()
 
     # __________________________________________________________________________
     def compete_by_higher_priority(self, button):
         prepared_processes = self.process_manager.prepared_processes
 
-        print(prepared_processes)
-
         if prepared_processes:
             higher_priority_processes = self.get_higher_priority_processes(
                 prepared_processes
             )
-
             if higher_priority_processes:
                 if len(higher_priority_processes) > 1:
                     process_to_execute = self.compete_by_quantum(
@@ -216,7 +258,10 @@ class ProcessManagerWindow(Gtk.Window):
         lower_quantum_processes = self.get_lower_quantum_processes(processes)
         if lower_quantum_processes:
             if len(lower_quantum_processes) > 1:
-                return self.get_lower_pid_process(lower_quantum_processes)
+                lower_pid_process = self.get_lower_pid_process(
+                    lower_quantum_processes
+                )
+                return lower_pid_process
             else:
                 return lower_quantum_processes[0]
 
@@ -224,16 +269,16 @@ class ProcessManagerWindow(Gtk.Window):
     def get_higher_priority_processes(self, processes) -> list:
         higher_priority_processes = []
         for i in processes:
-            if i.priority_level == 'VeryHigh':
+            if i.priority == 'VeryHigh':
                 higher_priority_processes.append(i)
         return higher_priority_processes
 
     # __________________________________________________________________________
     def get_lower_quantum_processes(self, processes) -> list:
         lower_quantum_processes = []
-        lower_quantum = None, 0
+        lower_quantum = None, 51
         for i in processes:
-            if lower_quantum[1] < i.quantum:
+            if lower_quantum[1] > i.quantum:
                 lower_quantum = i, i.quantum
         for i in processes:
             if lower_quantum[1] == i.quantum:
@@ -242,9 +287,9 @@ class ProcessManagerWindow(Gtk.Window):
 
     # __________________________________________________________________________
     def get_lower_pid_process(self, processes) -> Process:
-        lower_pip_process = None, 0
+        lower_pip_process = None, 1000
         for i in processes:
-            if lower_pip_process[1] < int(i.pid):
+            if lower_pip_process[1] > int(i.pid):
                 lower_pip_process = i, int(i.pid)
         return lower_pip_process[0]
 
