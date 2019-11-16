@@ -12,7 +12,7 @@ from process import Process
 class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def __init__(self) -> None:
-        Gtk.Window.__init__(self, title="Process Manager")
+        super().__init__(title="Process Manager")
         self.connect("destroy", Gtk.main_quit)
         self.set_border_width(5)
 
@@ -37,10 +37,19 @@ class ProcessManagerWindow(Gtk.Window):
         simulating_switch = Gtk.Switch()
         simulating_switch.connect("notify::active", self.execute_simulation)
         self.executing_spinner = Gtk.Spinner()
+        self.quantum_rat_spin_button = Gtk.SpinButton(
+            adjustment=Gtk.Adjustment(
+                value=1,
+                lower=1,
+                upper=10,
+                step_increment=1,
+                page_increment=0,
+                page_size=0
+            ), climb_rate=1, digits=0,
+        )
+        self.quantum_rat_spin_button.connect("value-changed", self.change_quantum_rat)
 
         # Inactive Processes List ----------------------------------------------
-        left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-
         self.inactive_processes_list_box = Gtk.ListBox()
         self.inactive_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -52,8 +61,6 @@ class ProcessManagerWindow(Gtk.Window):
         add_process_button.connect("clicked", self.add_process_action)
 
         # Prepared Processes List ----------------------------------------------
-        center_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-
         self.prepared_processes_list_box = Gtk.ListBox()
         self.prepared_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -71,8 +78,6 @@ class ProcessManagerWindow(Gtk.Window):
         flow_box.add(self.executed_process_progress_bar)
 
         # Suspended Processes List ---------------------------------------------
-        right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-
         self.suspended_processes_list_box = Gtk.ListBox()
         self.suspended_processes_list_box.set_selection_mode(
             Gtk.SelectionMode.NONE
@@ -83,6 +88,8 @@ class ProcessManagerWindow(Gtk.Window):
         )
 
         # Add Components -------------------------------------------------------
+        top_box.add(Gtk.Label(label='Quantum Rat (s):'))
+        top_box.add(self.quantum_rat_spin_button)
         top_box.add(self.simulating_label)
         top_box.add(simulating_switch)
         top_box.add(self.executing_spinner)
@@ -158,7 +165,10 @@ class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def execute_simulation(self, switch, gparam):
         if switch.get_active():
-            self.timeout_id = GLib.timeout_add(1000, self.compete_action, None)
+            self.timeout_id = GLib.timeout_add(
+                self.process_manager.quantum_rat * 1000, self.iteration,
+                None,
+            )
             self.executing_spinner.start()
             self.simulating_label.set_label("Stop Simulating")
         else:
@@ -168,6 +178,11 @@ class ProcessManagerWindow(Gtk.Window):
             self.executing_spinner.stop()
             self.simulating_label.set_label("Start Simulating")
 
+    # __________________________________________________________________________
+    def change_quantum_rat(self, spin_button):
+        quantum_rat = spin_button.get_value_as_int()
+        self.process_manager.set_quantum_rat(quantum_rat)
+        
     # __________________________________________________________________________
     def add_process_action(self, button) -> None:
         add_process_message_dialog = Gtk.MessageDialog(
@@ -212,7 +227,7 @@ class ProcessManagerWindow(Gtk.Window):
                     "Processes Limit: 999",
                     buttons=Gtk.ButtonsType.OK_CANCEL,
                 )
-                response = show_error_message_error.run()
+                show_error_message_error.run()
                 show_error_message_error.destroy()
         else:
             button.set_active(True)
@@ -237,7 +252,7 @@ class ProcessManagerWindow(Gtk.Window):
         self.update_components()
 
     # __________________________________________________________________________
-    def compete_action(self, button):
+    def iteration(self, button):
         process_to_execute = self.process_manager.compete()
         self.execute_process_action(process_to_execute)
         return True
