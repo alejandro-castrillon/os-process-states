@@ -10,7 +10,7 @@ class ProcessManager:
         self.executed_process = None
         self.suspended_processes = []
 
-        self.quantum_rat = 0
+        self.quantum_rat = 1
         self.current_pid = 0
 
     # __________________________________________________________________________
@@ -33,11 +33,23 @@ class ProcessManager:
         self.inactive_processes.append(process)
 
     # __________________________________________________________________________
+    def set_quantum_rat(self, quantum_rat):
+        self.quantum_rat = quantum_rat
+        for i in self.prepared_processes:
+            i.processor_time = i.quantum / self.quantum_rat
+        if self.executed_process:
+            self.executed_process.processor_time = (
+                self.executed_process.quantum / self.quantum_rat
+            )
+        for i in self.suspended_processes:
+            i.processor_time = i.quantum / self.quantum_rat
+
+    # __________________________________________________________________________
     def prepare_process(self, process_name) -> Process:
         process = Process(process_name)
         process.name_pad = self.name_pad
         if len(self.prepared_processes) < 1000:
-            process.activate(self.generate_pid())
+            process.activate(self.generate_pid(), self.quantum_rat)
             self.prepared_processes.append(process)
             return process
 
@@ -46,15 +58,16 @@ class ProcessManager:
         self.executed_process = process
         self.prepared_processes.remove(process)
 
+    # __________________________________________________________________________
     def deactivate_process(self) -> Process:
         self.executed_process.deactivate()
-        process, self.executed_process = self.executed_process = None
+        process, self.executed_process = self.executed_process, None
         return process
 
     # __________________________________________________________________________
     def suspend_process(self) -> Process:
         self.suspended_processes.append(self.executed_process)
-        process, self.executed_process = self.executed_process = None
+        process, self.executed_process = self.executed_process, None
         return process
 
     # __________________________________________________________________________
@@ -63,11 +76,11 @@ class ProcessManager:
         return self.current_pid
 
     # __________________________________________________________________________
-    def compete(self):
+    def compete(self) -> Process:
         prepared_processes = self.prepared_processes
 
         if prepared_processes:
-            #
+            # Expropiation
             high_priority_processes = self.get_high_priority_processes(
                 prepared_processes
             )
@@ -87,7 +100,7 @@ class ProcessManager:
 
                 higher_priority_processes = self.get_higher_priority_processes(
                     lower_quantum_processes
-                )
+                )[0]
                 if higher_priority_processes:
                     if len(higher_priority_processes) > 1:
                         return self.get_lower_pid_process(
