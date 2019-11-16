@@ -7,12 +7,13 @@ class Process:
         self.name_pad = 0
         self.deactivate()
 
-    def activate(self, pid):
+    def activate(self, pid, quantum_rat):
         self.pid = pid
         self.priority = random.choice(["VeryHigh", "High", "Medium", "Low"])
         self.memory = random.randint(100, 300)
         self.quantum = random.randint(10, 50)
         self.progress = 0
+        self.processor_time = self.quantum / quantum_rat
         self.interaction = random.choice([True, False])
 
     def deactivate(self):
@@ -21,6 +22,7 @@ class Process:
         self.memory = None
         self.quantum = None
         self.progress = None
+        self.processor_time = None
         self.interaction = None
 
     def __str__(self):
