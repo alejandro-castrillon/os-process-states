@@ -6,6 +6,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
 from process_manager import ProcessManager
+from process_progress_bar import ProcessProgressBar
 from process import Process
 
 
@@ -69,13 +70,12 @@ class ProcessManagerWindow(Gtk.Window):
         prepared_processes_scrolled_window.add(self.prepared_processes_list_box)
 
         # Executed Process Progress Bar ----------------------------------------
-        self.executed_process_progress_bar = Gtk.ProgressBar()
-        self.executed_process_progress_bar.set_text("")
-        self.executed_process_progress_bar.set_show_text(True)
-
-        flow_box = Gtk.ListBox()
-        flow_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow_box.add(self.executed_process_progress_bar)
+        self.executed_process_list_box = Gtk.ListBox()
+        self.executed_process_list_box.set_selection_mode(
+            Gtk.SelectionMode.NONE
+        )
+        executed_process_scrolled_window = Gtk.ScrolledWindow()
+        executed_process_scrolled_window.add(self.executed_process_list_box)
 
         # Suspended Processes List ---------------------------------------------
         self.suspended_processes_list_box = Gtk.ListBox()
@@ -97,29 +97,26 @@ class ProcessManagerWindow(Gtk.Window):
         grid.attach(top_box, 0, 0, 3, 1)
 
         grid.attach(Gtk.Label(label="Inactive Processes"), 0, 1, 1, 1)
-        grid.attach(inactive_processes_scrolled_window, 0, 2, 1, 17)
-        grid.attach(add_process_button, 0, 19, 1, 1)
+        grid.attach(inactive_processes_scrolled_window, 0, 2, 1, 16)
+        grid.attach(add_process_button, 0, 18, 1, 1)
 
         grid.attach(Gtk.Label(label="Prepared Processes"), 1, 1, 3, 1)
-        grid.attach(prepared_processes_scrolled_window, 1, 2, 3, 18)
+        grid.attach(prepared_processes_scrolled_window, 1, 2, 3, 17)
 
         grid.attach(Gtk.Label(label="Executed Process"), 4, 1, 3, 1)
-        grid.attach(flow_box, 4, 2, 3, 1)
+        grid.attach(executed_process_scrolled_window, 4, 2, 3, 1)
 
         grid.attach(Gtk.Label(label="Suspended Processes"), 4, 3, 3, 1)
-        grid.attach(suspended_processes_scrolled_window, 4, 4, 3, 16)
+        grid.attach(suspended_processes_scrolled_window, 4, 4, 3, 15)
 
         self.update_components()
         self.add(grid)
 
     # __________________________________________________________________________
     def update_components(self) -> None:
-        # Clear lists ----------------------------------------------------------
-        self.clear_list_box(self.inactive_processes_list_box)
-        self.clear_list_box(self.prepared_processes_list_box)
-        self.clear_list_box(self.suspended_processes_list_box)
 
         # Add Inactive Processes -----------------------------------------------
+        self.clear_list_box(self.inactive_processes_list_box)
         for i in self.process_manager.inactive_processes:
             row = Gtk.ListBoxRow()
             process_button = Gtk.ToggleButton(label=i.name)
@@ -130,31 +127,28 @@ class ProcessManagerWindow(Gtk.Window):
             self.inactive_processes_list_box.add(row)
 
         # Add Prepared Processes -----------------------------------------------
+        self.clear_list_box(self.prepared_processes_list_box)
         for i in self.process_manager.prepared_processes:
-            row = Gtk.ListBoxRow()
-            progress_bar = Gtk.ProgressBar()
-            progress_bar.set_text(str(i))
-            progress_bar.set_show_text(True)
-            row.add(progress_bar)
-            self.prepared_processes_list_box.add(row)
+            process_progress_bar = ProcessProgressBar(i)
+            self.prepared_processes_list_box.add(process_progress_bar)
 
         # Add Executed Processes -----------------------------------------------
         executed_process = self.process_manager.executed_process
+        self.clear_list_box(self.executed_process_list_box)
         if executed_process:
-            self.executed_process_progress_bar.set_text(str(executed_process))
+            process_progress_bar = ProcessProgressBar(executed_process)
+            self.executed_process_list_box.add(process_progress_bar)
 
         # Add Suspended Processes ----------------------------------------------
+        self.clear_list_box(self.suspended_processes_list_box)
         for i in self.process_manager.suspended_processes:
-            row = Gtk.ListBoxRow()
-            progress_bar = Gtk.ProgressBar()
-            progress_bar.set_text(str(i))
-            progress_bar.set_show_text(True)
-            row.add(progress_bar)
-            self.suspended_processes_list_box.add(row)
+            process_progress_bar = ProcessProgressBar(i)
+            self.suspended_processes_list_box.add(process_progress_bar)
 
         # Update lists components ----------------------------------------------
         self.inactive_processes_list_box.show_all()
         self.prepared_processes_list_box.show_all()
+        self.executed_process_list_box.show_all()
         self.suspended_processes_list_box.show_all()
 
     # __________________________________________________________________________
@@ -162,7 +156,7 @@ class ProcessManagerWindow(Gtk.Window):
         for i in list_box.get_children():
             i.destroy()
 
-    # __________________________________________________________________________
+    # _________________________________________ _________________________________
     def execute_simulation(self, switch, gparam):
         if switch.get_active():
             self.timeout_id = GLib.timeout_add(
@@ -253,6 +247,25 @@ class ProcessManagerWindow(Gtk.Window):
 
     # __________________________________________________________________________
     def iteration(self, button):
+        for i in self.process_manager.suspended_processes:
+            if i.interaction:
+                i.next = True
+                i.interaction = False
+                pass
+            else:
+                if hasattr(i, 'next') and i.next:
+                    delattr(i, 'next')
+                    i.interaction = True
+                self.process_manager.suspended_processes.remove(i)
+                self.process_manager.prepared_processes.append(i)
+                
+        executed_process = self.process_manager.executed_process
+        if executed_process:
+            if executed_process.progress >= 1:
+                self.process_manager.deactivate_process()
+            else:
+                executed_process.progress += executed_process.processor_time / 100
+                self.suspend_process_action()
         process_to_execute = self.process_manager.compete()
         self.execute_process_action(process_to_execute)
         return True
