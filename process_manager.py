@@ -55,8 +55,6 @@ class ProcessManager:
 
     # __________________________________________________________________________
     def execute_process(self, process: Process) -> None:
-        if self.executed_process:
-            self.suspend_process()
         self.executed_process = process
         self.prepared_processes.remove(process)
 
