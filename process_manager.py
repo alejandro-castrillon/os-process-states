@@ -27,13 +27,13 @@ class ProcessManager:
         return processes
 
     # __________________________________________________________________________
-    def add_process(self, process_name) -> None:
+    def add_process(self, process_name: str) -> None:
         process = Process(process_name)
         file_manager.append_binary_file("processes.pcs", process)
         self.inactive_processes.append(process)
 
     # __________________________________________________________________________
-    def set_quantum_rat(self, quantum_rat):
+    def set_quantum_rat(self, quantum_rat: int):
         self.quantum_rat = quantum_rat
         for i in self.prepared_processes:
             i.processor_time = i.quantum / self.quantum_rat
@@ -45,7 +45,7 @@ class ProcessManager:
             i.processor_time = i.quantum / self.quantum_rat
 
     # __________________________________________________________________________
-    def prepare_process(self, process_name) -> Process:
+    def prepare_process(self, process_name: str) -> Process:
         process = Process(process_name)
         process.name_pad = self.name_pad
         if len(self.prepared_processes) < 1000:
@@ -54,7 +54,9 @@ class ProcessManager:
             return process
 
     # __________________________________________________________________________
-    def execute_process(self, process) -> None:
+    def execute_process(self, process: Process) -> None:
+        if self.executed_process:
+            self.suspend_process()
         self.executed_process = process
         self.prepared_processes.remove(process)
 
