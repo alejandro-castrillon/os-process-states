@@ -30,10 +30,10 @@ class Process:
         if self.pid:
             string += (
                 f", pid={self.pid:0>3}"
-                f", priority={self.priority:<8}"
-                f", memory={self.memory}"
-                f", quantum={self.quantum}"
-                f", interaction={str(self.interaction):<5}"
+                # f", priority={self.priority:<8}"
+                # f", memory={self.memory}"
+                # f", quantum={self.quantum}"
+                # f", interaction={str(self.interaction):<5}"
             )
         return string + ")"
 
