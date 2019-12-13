@@ -1,7 +1,6 @@
 import os
 
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
@@ -250,22 +249,30 @@ class ProcessManagerWindow(Gtk.Window):
         for i in self.process_manager.suspended_processes:
             if i.interaction:
                 i.next = True
-                i.interaction = False
-                pass
             else:
                 if hasattr(i, 'next') and i.next:
                     delattr(i, 'next')
-                    i.interaction = True
+                self.process_manager.suspended_processes.remove(i)
+                self.process_manager.prepared_processes.append(i)
+
+            if hasattr(i, 'next') and i.next:
+                delattr(i, 'next')
+                self.process_manager.suspended_processes.remove(i)
+                self.process_manager.prepared_processes.append(i)
+            elif i.interaction:
+                i.next = True
+            else:
                 self.process_manager.suspended_processes.remove(i)
                 self.process_manager.prepared_processes.append(i)
                 
         executed_process = self.process_manager.executed_process
         if executed_process:
+            executed_process.progress += executed_process.processor_time / 100
             if executed_process.progress >= 1:
-                self.process_manager.deactivate_process()
+                self.deactivate_process_action()
             else:
-                executed_process.progress += executed_process.processor_time / 100
                 self.suspend_process_action()
+
         process_to_execute = self.process_manager.compete()
         self.execute_process_action(process_to_execute)
         return True
