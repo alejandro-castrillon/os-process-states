@@ -39,10 +39,10 @@ class ProcessManagerWindow(Gtk.Window):
         self.executing_spinner = Gtk.Spinner()
         self.quantum_rat_spin_button = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(
-                value=1,
-                lower=1,
-                upper=10,
-                step_increment=1,
+                value=750,
+                lower=250,
+                upper=10000,
+                step_increment=250,
                 page_increment=0,
                 page_size=0
             ), climb_rate=1, digits=0,
@@ -87,7 +87,7 @@ class ProcessManagerWindow(Gtk.Window):
         )
 
         # Add Components -------------------------------------------------------
-        top_box.add(Gtk.Label(label='Quantum Rat (s):'))
+        top_box.add(Gtk.Label(label='Quantum Rat (ms):'))
         top_box.add(self.quantum_rat_spin_button)
         top_box.add(self.simulating_label)
         top_box.add(simulating_switch)
@@ -155,7 +155,7 @@ class ProcessManagerWindow(Gtk.Window):
         for i in list_box.get_children():
             i.destroy()
 
-    # _________________________________________ _________________________________
+    # __________________________________________________________________________
     def execute_simulation(self, switch, gparam):
         if switch.get_active():
             self.timeout_id = GLib.timeout_add(
@@ -174,7 +174,7 @@ class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def change_quantum_rat(self, spin_button):
         quantum_rat = spin_button.get_value_as_int()
-        self.process_manager.set_quantum_rat(quantum_rat)
+        self.process_manager.set_quantum_rat(quantum_rat / 1000)
         
     # __________________________________________________________________________
     def add_process_action(self, button) -> None:
@@ -209,7 +209,7 @@ class ProcessManagerWindow(Gtk.Window):
         if button.get_active():
             process = self.process_manager.prepare_process(button.get_label())
             if process:
-                print("+ prepare:", process)
+                print("+ prepare:", process.__str__(True))
                 self.update_components()
             else:
                 show_error_message_error = Gtk.MessageDialog(
@@ -228,43 +228,40 @@ class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def execute_process_action(self, process) -> None:
         if process:
-            print("* execute:", process)
+            print("* execute:", process.__str__(True))
             self.process_manager.execute_process(process)
             self.update_components()
 
     # __________________________________________________________________________
     def deactivate_process_action(self) -> None:
         process = self.process_manager.deactivate_process()
-        print("- deactivate:", process)
+        print("- deactivate:", process.__str__(True))
         self.update_components()
 
     # __________________________________________________________________________
     def suspend_process_action(self) -> None:
         process = self.process_manager.suspend_process()
-        print("/ suspend:", process)
+        print("/ suspend:", process.__str__(True))
         self.update_components()
 
     # __________________________________________________________________________
     def iteration(self, button):
-        for i in self.process_manager.suspended_processes:
-            if i.interaction:
-                i.next = True
+        # Suspended to prepared
+        i = 0
+        while i < len(self.process_manager.suspended_processes):
+            process = self.process_manager.suspended_processes[0]
+            if hasattr(process, 'next') and process.next:
+                delattr(process, 'next')
+                self.process_manager.suspended_processes.remove(process)
+                self.process_manager.prepared_processes.append(process)
+            elif process.interaction:
+                process.next = True
+                i += 1
             else:
-                if hasattr(i, 'next') and i.next:
-                    delattr(i, 'next')
-                self.process_manager.suspended_processes.remove(i)
-                self.process_manager.prepared_processes.append(i)
-
-            if hasattr(i, 'next') and i.next:
-                delattr(i, 'next')
-                self.process_manager.suspended_processes.remove(i)
-                self.process_manager.prepared_processes.append(i)
-            elif i.interaction:
-                i.next = True
-            else:
-                self.process_manager.suspended_processes.remove(i)
-                self.process_manager.prepared_processes.append(i)
+                self.process_manager.suspended_processes.remove(process)
+                self.process_manager.prepared_processes.append(process)
                 
+        # Executed to suspended or deactivated
         executed_process = self.process_manager.executed_process
         if executed_process:
             executed_process.progress += executed_process.processor_time / 100
@@ -273,6 +270,7 @@ class ProcessManagerWindow(Gtk.Window):
             else:
                 self.suspend_process_action()
 
+        # Prepared to executed
         process_to_execute = self.process_manager.compete()
         self.execute_process_action(process_to_execute)
         return True
