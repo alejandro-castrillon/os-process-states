@@ -24,16 +24,17 @@ class Process:
         self.processor_time = None
         self.interaction = None
 
-    def __str__(self):
+    def __str__(self, all=False):
         string = f"Process(name={self.name:<{self.name_pad}}"
         if self.pid:
-            string += (
-                f", pid={self.pid:0>3}"
-                # f", priority={self.priority:<8}"
-                # f", memory={self.memory}"
-                # f", quantum={self.quantum}"
-                # f", interaction={str(self.interaction):<5}"
-            )
+            string +=  f", pid={self.pid:0>3}"
+            if all:
+                string += (
+                    f", priority={self.priority:<8}"
+                    f", memory={self.memory}"
+                    f", quantum={self.quantum}"
+                    f", interaction={str(self.interaction):<5}"
+                )
         return string + ")"
 
     def __repr__(self):
