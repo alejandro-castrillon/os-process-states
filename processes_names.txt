@@ -4,16 +4,13 @@ git
 python
 touch
 mkdir
-more
 node
 clear
 pacman
 echo
-reboot
 java
 gcc
-cat
-whoami
 grep
 pip
 apt
+npm

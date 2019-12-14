@@ -13,13 +13,6 @@ class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def __init__(self) -> None:
         super().__init__(title="Process Manager")
-
-
-        settings = Gtk.Settings.get_default()
-        settings.set_property("gtk-theme-name", "Numix")
-        settings.set_property("gtk-application-prefer-dark-theme", True)  # if you want use dark theme, set second arg to True
-
-
         self.connect("destroy", Gtk.main_quit)
         self.set_border_width(5)
 
@@ -47,9 +40,9 @@ class ProcessManagerWindow(Gtk.Window):
         self.quantum_rat_spin_button = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(
                 value=750,
-                lower=250,
+                lower=125,
                 upper=10000,
-                step_increment=250,
+                step_increment=125,
                 page_increment=0,
                 page_size=0
             ), climb_rate=1, digits=0,
@@ -103,17 +96,17 @@ class ProcessManagerWindow(Gtk.Window):
         grid.attach(top_box, 0, 0, 3, 1)
 
         grid.attach(Gtk.Label(label="Inactive Processes"), 0, 1, 1, 1)
-        grid.attach(inactive_processes_scrolled_window, 0, 2, 1, 16)
-        grid.attach(add_process_button, 0, 18, 1, 1)
+        grid.attach(inactive_processes_scrolled_window, 0, 2, 1, 15)
+        grid.attach(add_process_button, 0, 17, 1, 1)
 
         grid.attach(Gtk.Label(label="Prepared Processes"), 1, 1, 3, 1)
-        grid.attach(prepared_processes_scrolled_window, 1, 2, 3, 17)
+        grid.attach(prepared_processes_scrolled_window, 1, 2, 3, 16)
 
         grid.attach(Gtk.Label(label="Executed Process"), 4, 1, 3, 1)
         grid.attach(executed_process_scrolled_window, 4, 2, 3, 1)
 
         grid.attach(Gtk.Label(label="Suspended Processes"), 4, 3, 3, 1)
-        grid.attach(suspended_processes_scrolled_window, 4, 4, 3, 15)
+        grid.attach(suspended_processes_scrolled_window, 4, 4, 3, 14)
 
         self.update_components()
         self.add(grid)
@@ -283,6 +276,7 @@ class ProcessManagerWindow(Gtk.Window):
 
         # Prepared to executed
         process_to_execute = self.process_manager.compete()
+        print(f'Process to execute: {process_to_execute}')
         self.execute_process_action(process_to_execute)
         return True
 
