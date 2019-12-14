@@ -13,6 +13,13 @@ class ProcessManagerWindow(Gtk.Window):
     # __________________________________________________________________________
     def __init__(self) -> None:
         super().__init__(title="Process Manager")
+
+
+        settings = Gtk.Settings.get_default()
+        settings.set_property("gtk-theme-name", "Numix")
+        settings.set_property("gtk-application-prefer-dark-theme", True)  # if you want use dark theme, set second arg to True
+
+
         self.connect("destroy", Gtk.main_quit)
         self.set_border_width(5)
 
@@ -246,6 +253,10 @@ class ProcessManagerWindow(Gtk.Window):
 
     # __________________________________________________________________________
     def iteration(self, button):
+        print(':Prepared:')
+        for i in self.process_manager.prepared_processes:
+            print(i)
+
         # Suspended to prepared
         i = 0
         while i < len(self.process_manager.suspended_processes):
@@ -264,7 +275,7 @@ class ProcessManagerWindow(Gtk.Window):
         # Executed to suspended or deactivated
         executed_process = self.process_manager.executed_process
         if executed_process:
-            executed_process.progress += executed_process.processor_time / 100
+            executed_process.progress += executed_process.advance
             if executed_process.progress >= 1:
                 self.deactivate_process_action()
             else:

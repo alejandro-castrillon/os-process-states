@@ -12,8 +12,9 @@ class Process:
         self.pid = pid
         self.priority = random.choice(["VeryHigh", "High", "Medium", "Low"])
         self.memory = random.randint(100, 300)
-        self.quantum = random.randint(10, 50)
-        self.processor_time = self.quantum / quantum_rat
+        self.processor_time = random.randint(10, 50)
+        self.quantum = self.processor_time / quantum_rat
+        self.advance = 1 / self.quantum
         self.interaction = random.choice([True, False])
 
     def deactivate(self):

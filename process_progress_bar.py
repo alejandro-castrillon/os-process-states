@@ -19,15 +19,7 @@ class ProcessProgressBar(Gtk.EventBox):
 
         self.connect('button_press_event', self.show_process)
 
-    @property
-    def process(self):
-        return self.__process
-
-    @process.setter
-    def process(self, process):
-        self.__process = process
-
-    def show_process(self, button, otro):
+    def show_process(self, button, _):
         popover = Gtk.Popover()
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -35,9 +27,9 @@ class ProcessProgressBar(Gtk.EventBox):
         box.add(Gtk.Label(label=f'PID: {self.process.pid}'))
         box.add(Gtk.Label(label=f'Priority: {self.process.priority}'))
         box.add(Gtk.Label(label=f'Memory: {self.process.memory}'))
-        box.add(Gtk.Label(label=f'Quantum: {self.process.quantum}'))
-        box.add(Gtk.Label(label=f'Progress: {self.process.progress * 100}%'))
         box.add(Gtk.Label(label=f'Processor Time: {self.process.processor_time}'))
+        box.add(Gtk.Label(label=f'Quantum: {self.process.quantum}'))
+        box.add(Gtk.Label(label=f'Progress: {round(self.process.progress * 100, 4)}%'))
         box.add(Gtk.Label(label=f'Interaction: {self.process.interaction}'))
 
         popover.add(box)
