@@ -2,6 +2,8 @@ import random
 
 
 class Process:
+    PRIORITIES = {"VeryHigh":4, "High":3, "Medium":2, "Low":1}
+
     def __init__(self, name):
         self.name = name
         self.name_pad = 0
@@ -10,7 +12,7 @@ class Process:
 
     def activate(self, pid, quantum_rat):
         self.pid = pid
-        self.priority = random.choice(["VeryHigh", "High", "Medium", "Low"])
+        self.priority = random.choice(list(self.PRIORITIES.keys()))
         self.memory = random.randint(100, 300)
         self.processor_time = random.randint(10, 50)
         self.quantum = self.processor_time / quantum_rat
