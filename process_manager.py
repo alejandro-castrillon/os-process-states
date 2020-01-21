@@ -3,6 +3,9 @@ import file_manager
 
 
 class ProcessManager:
+    PROCESSES_FILE = 'processes.pcs'
+    DEFAULT_PROCESSES_FILE = 'processes_names.txt'
+
     # __________________________________________________________________________
     def __init__(self):
         self.inactive_processes = self.load_processes()
@@ -16,11 +19,11 @@ class ProcessManager:
     # __________________________________________________________________________
     def load_processes(self) -> list:
         try:
-            processes = file_manager.read_binary_file("processes.pcs")
+            processes = file_manager.read_binary_file(self.PROCESSES_FILE)
         except FileNotFoundError as err:
             print(err)
             self.inactive_processes = []
-            for i in file_manager.read_file("processes_names.txt"):
+            for i in file_manager.read_file(self.DEFAULT_PROCESSES_FILE):
                 self.add_process(i)
             processes = self.load_processes()
         self.name_pad = max([len(i.name) for i in processes])
@@ -29,7 +32,7 @@ class ProcessManager:
     # __________________________________________________________________________
     def add_process(self, process_name: str) -> None:
         process = Process(process_name)
-        file_manager.append_binary_file("processes.pcs", process)
+        file_manager.append_binary_file(self.PROCESSES_FILE, process)
         self.inactive_processes.append(process)
 
     # __________________________________________________________________________
@@ -93,7 +96,7 @@ class ProcessManager:
                 return self.compete_by_quantum(prepared_processes)
 
     # __________________________________________________________________________
-    def compete_by_quantum(self, processes) -> Process:
+    def compete_by_quantum(self, processes:list) -> Process:
         lower_quantum_processes = self.get_lower_quantum_processes(processes)
         if lower_quantum_processes:
             if len(lower_quantum_processes) > 1:
@@ -112,15 +115,15 @@ class ProcessManager:
                 return lower_quantum_processes[0]
 
     # __________________________________________________________________________
-    def get_high_priority_processes(self, processes) -> list:
+    def get_high_priority_processes(self, processes:list) -> list:
         high_priority_processes = []
         for i in processes:
-            if i.priority == "VeryHigh":
+            if i.priority == list(Process.PRIORITIES.keys())[0]:
                 high_priority_processes += [i]
         return high_priority_processes
 
     # __________________________________________________________________________
-    def get_lower_quantum_processes(self, processes) -> list:
+    def get_lower_quantum_processes(self, processes:list) -> list:
         lower_quantum_processes = []
         lower_quantum = None, 51
         for i in processes:
@@ -132,9 +135,9 @@ class ProcessManager:
         return lower_quantum_processes
 
     # __________________________________________________________________________
-    def get_higher_priority_processes(self, processes) -> list:
+    def get_higher_priority_processes(self, processes:list) -> list:
         higher_priority_processes = []
-        for i in ["VeryHigh", "High", "Medium", "Low"]:
+        for i in list(Process.PRIORITIES.keys()):
             for j in processes:
                 if j.priority == i:
                     higher_priority_processes += [j]
@@ -142,7 +145,7 @@ class ProcessManager:
                 return higher_priority_processes, i
 
     # __________________________________________________________________________
-    def get_lower_pid_process(self, processes) -> Process:
+    def get_lower_pid_process(self, processes:list) -> Process:
         lower_pip_process = None, 1000
         for i in processes:
             if lower_pip_process[1] > int(i.pid):
