@@ -16,6 +16,7 @@ class ProcessManagerWindow(Gtk.Window):
         self.connect("destroy", Gtk.main_quit)
         self.set_border_width(5)
 
+        self.expropiated_process: Process = None
         self.process_manager = ProcessManager()
         self.timeout_id = None
 
@@ -34,8 +35,8 @@ class ProcessManagerWindow(Gtk.Window):
         top_box = Gtk.Box(spacing=2)
 
         self.simulating_label = Gtk.Label(label="Start Simulating")
-        simulating_switch = Gtk.Switch()
-        simulating_switch.connect("notify::active", self.execute_simulation)
+        self.simulating_switch = Gtk.Switch()
+        self.simulating_switch.connect("notify::active", self.execute_simulation)
         self.executing_spinner = Gtk.Spinner()
         self.quantum_rat_spin_button = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(
@@ -90,7 +91,7 @@ class ProcessManagerWindow(Gtk.Window):
         top_box.add(Gtk.Label(label='Quantum Rat (ms):'))
         top_box.add(self.quantum_rat_spin_button)
         top_box.add(self.simulating_label)
-        top_box.add(simulating_switch)
+        top_box.add(self.simulating_switch)
         top_box.add(self.executing_spinner)
 
         grid.attach(top_box, 0, 0, 3, 1)
@@ -159,7 +160,8 @@ class ProcessManagerWindow(Gtk.Window):
     def execute_simulation(self, switch, gparam):
         if switch.get_active():
             self.timeout_id = GLib.timeout_add(
-                self.process_manager.quantum_rat * 1000, self.iteration,
+                self.process_manager.quantum_rat * 1000,
+                self.complete_execution if self.expropiated_process else self.iteration,
                 None,
             )
             self.executing_spinner.start()
@@ -210,6 +212,10 @@ class ProcessManagerWindow(Gtk.Window):
             process = self.process_manager.prepare_process(button.get_label())
             if process:
                 print("+ prepare:", process.__str__(True))
+
+                if process.priority == list(Process.PRIORITIES.keys())[0]:
+                    self.expropiation(process)
+
                 self.update_components()
             else:
                 show_error_message_error = Gtk.MessageDialog(
@@ -246,10 +252,6 @@ class ProcessManagerWindow(Gtk.Window):
 
     # __________________________________________________________________________
     def iteration(self, button):
-        print(':Prepared:')
-        for i in self.process_manager.prepared_processes:
-            print(i)
-
         # Suspended to prepared
         i = 0
         while i < len(self.process_manager.suspended_processes):
@@ -276,11 +278,41 @@ class ProcessManagerWindow(Gtk.Window):
 
         # Prepared to executed
         process_to_execute = self.process_manager.compete()
-        print(f'Process to execute: {process_to_execute}')
         self.execute_process_action(process_to_execute)
+
         return True
 
+    # __________________________________________________________________________
+    def expropiation(self, process: Process) -> None:
+        executed = self.process_manager.executed_process
+        if executed:
+            if process.priority == executed.priority or process.quantum < executed.quantum:
+                print("^ expropiate:", process.__str__(True))
+                self.process_manager.prepared_processes.append(executed)
+                self.process_manager.execute_process(process)
+
+                self.expropiated_process = process
+        else:
+            print("^ expropiate:", process.__str__(True))
+            self.process_manager.execute_process(process)
+
+            self.expropiated_process = process
+
+    # __________________________________________________________________________
+    def complete_execution(self, button):
+        # Executed to suspended or deactivated
+        executed_process = self.process_manager.executed_process
+        if executed_process:
+            executed_process.progress += executed_process.advance
+            if executed_process.progress >= 1:
+                self.deactivate_process_action()
+                self.expropiated_process = None
+                self.execute_simulation(self.simulating_switch, None)
+
+        self.update_components()
+        return self.expropiated_process != None
 
 if __name__ == "__main__":
+    os.system('clear')
     ProcessManagerWindow().show_all()
     Gtk.main()
