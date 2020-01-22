@@ -39,13 +39,16 @@ class ProcessManager:
     def set_quantum_rat(self, quantum_rat: int):
         self.quantum_rat = quantum_rat
         for i in self.prepared_processes:
-            i.processor_time = i.quantum / self.quantum_rat
+            i.quantum = i.processor_time / self.quantum_rat
+            i.advance = 1 / i.quantum
         if self.executed_process:
-            self.executed_process.processor_time = (
-                self.executed_process.quantum / self.quantum_rat
+            self.executed_process.quantum = (
+                self.executed_process.processor_time / self.quantum_rat
             )
+            self.executed_process.advance = 1 / self.executed_process.quantum
         for i in self.suspended_processes:
-            i.processor_time = i.quantum / self.quantum_rat
+            i.quantum = i.processor_time / self.quantum_rat
+            i.advance = 1 / i.quantum
 
     # __________________________________________________________________________
     def prepare_process(self, process_name: str) -> Process:
@@ -118,16 +121,16 @@ class ProcessManager:
     def get_high_priority_processes(self, processes:list) -> list:
         high_priority_processes = []
         for i in processes:
-            if i.priority == list(Process.PRIORITIES.keys())[0]:
+            if i.priority == Process.PRIORITIES[0]:
                 high_priority_processes += [i]
         return high_priority_processes
 
     # __________________________________________________________________________
     def get_lower_quantum_processes(self, processes:list) -> list:
         lower_quantum_processes = []
-        lower_quantum = None, 51
+        lower_quantum = None, 400
         for i in processes:
-            if lower_quantum[1] > i.quantum:
+            if lower_quantum[1] >= i.quantum:
                 lower_quantum = i, i.quantum
         for i in processes:
             if lower_quantum[1] == i.quantum:
@@ -137,7 +140,7 @@ class ProcessManager:
     # __________________________________________________________________________
     def get_higher_priority_processes(self, processes:list) -> list:
         higher_priority_processes = []
-        for i in list(Process.PRIORITIES.keys()):
+        for i in Process.PRIORITIES:
             for j in processes:
                 if j.priority == i:
                     higher_priority_processes += [j]
