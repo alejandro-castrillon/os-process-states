@@ -3,6 +3,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
+from utilities import trunc
 
 class ProcessProgressBar(Gtk.EventBox):
     def __init__(self, process):
@@ -28,8 +29,8 @@ class ProcessProgressBar(Gtk.EventBox):
         box.add(Gtk.Label(label=f'Priority: {self.process.priority}'))
         box.add(Gtk.Label(label=f'Memory: {self.process.memory}'))
         box.add(Gtk.Label(label=f'Processor Time: {self.process.processor_time}'))
-        box.add(Gtk.Label(label=f'Quantum: {self.process.quantum}'))
-        box.add(Gtk.Label(label=f'Progress: {round(self.process.progress * 100, 4)}%'))
+        box.add(Gtk.Label(label=f'Quantum: {round(self.process.quantum, 4)}'))
+        box.add(Gtk.Label(label=f'Progress: {trunc(self.process.progress * 100, 4)}%'))
         box.add(Gtk.Label(label=f'Interaction: {self.process.interaction}'))
 
         popover.add(box)
@@ -37,4 +38,3 @@ class ProcessProgressBar(Gtk.EventBox):
         popover.set_relative_to(self.progress_bar)
         popover.show_all()
         popover.popup()
-        
