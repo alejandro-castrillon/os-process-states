@@ -237,7 +237,8 @@ class ProcessManagerWindow(Gtk.Window):
         if process:
             print("+ prepare:", process.__str__(True))
 
-            if process.priority == Process.PRIORITIES[0]:
+            if (process.priority == Process.PRIORITIES[0]
+                and not self.expropiated_process):
                 self.expropiation(process)
 
             self.update_components()
@@ -308,26 +309,17 @@ class ProcessManagerWindow(Gtk.Window):
     def expropiation(self, process: Process) -> None:
         executed = self.process_manager.executed_process
         if executed:
-            if (
-                process.priority == executed.priority
-                or process.quantum < executed.quantum
-            ):
-                print("^ expropiate:", process.__str__(True))
-                self.process_manager.prepared_processes.append(executed)
-                self.process_manager.execute_process(process)
-
-                self.expropiated_process = process
-                self.execute_simulation(self.simulating_switch, None)
-            else:
-                del self.expropiated_process
-                self.expropiated_process = None
-                self.execute_simulation(self.simulating_switch, None)
-        else:
-            print("^ expropiate:", process.__str__(True))
+            self.process_manager.prepared_processes.append(executed)
             self.process_manager.execute_process(process)
 
             self.expropiated_process = process
             self.execute_simulation(self.simulating_switch, None)
+
+        print("^ expropiate:", process.__str__(True))
+        self.process_manager.execute_process(process)
+
+        self.expropiated_process = process
+        self.execute_simulation(self.simulating_switch, None)
 
     # __________________________________________________________________________
     def complete_execution(self, _) -> bool:
