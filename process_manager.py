@@ -83,20 +83,7 @@ class ProcessManager:
 
     # __________________________________________________________________________
     def compete(self) -> Process:
-        prepared_processes = self.prepared_processes
-
-        if prepared_processes:
-            # Expropiation
-            high_priority_processes = self.get_high_priority_processes(
-                prepared_processes
-            )
-            if high_priority_processes:
-                if len(high_priority_processes) > 1:
-                    return self.compete_by_quantum(high_priority_processes)
-                else:
-                    return high_priority_processes[0]
-            else:
-                return self.compete_by_quantum(prepared_processes)
+        return self.compete_by_quantum(self.prepared_processes)
 
     # __________________________________________________________________________
     def compete_by_quantum(self, processes:list) -> Process:
@@ -116,14 +103,6 @@ class ProcessManager:
                         return higher_priority_processes[0]
             else:
                 return lower_quantum_processes[0]
-
-    # __________________________________________________________________________
-    def get_high_priority_processes(self, processes:list) -> list:
-        high_priority_processes = []
-        for i in processes:
-            if i.priority == Process.PRIORITIES[0]:
-                high_priority_processes += [i]
-        return high_priority_processes
 
     # __________________________________________________________________________
     def get_lower_quantum_processes(self, processes:list) -> list:
